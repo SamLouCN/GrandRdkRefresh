@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GrandRdk 实时监控</title>
+<style>
+  :root {
+    --bg:        #0d1117;
+    --panel:     #161b22;
+    --border:    #30363d;
+    --text:      #c9d1d9;
+    --muted:     #8b949e;
+    --accent:    #4ade80;
+    --warn:      #facc15;
+    --danger:    #f87171;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ---------- 顶栏 ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 {
+    font-size: 15px;
+    margin: 0;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  header .meta {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .dot {
+    display: inline-block;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background .2s;
+  }
+  .dot.on  { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .dot.off { background: var(--danger); }
+
+  /* ---------- 主区 ---------- */
+  main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 12px;
+    max-width: 1920px;
+    margin: 0 auto;
+  }
+  @media (max-width: 1100px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- 摄像头卡片 ---------- */
+  .cam {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .cam-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #1c2128;
+    border-bottom: 1px solid var(--border);
+  }
+  .cam-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cam-title .role {
+    color: var(--muted);
+    font-weight: 400;
+    font-size: 12px;
+  }
+  .cam-stats {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--warn);
+    display: flex;
+    gap: 12px;
+  }
+  .cam-stats .item b {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .cam-body {
+    position: relative;
+    background: #000;
+    aspect-ratio: 4 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .cam-body img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .cam-body .placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 13px;
+    gap: 6px;
+    pointer-events: none;
+  }
+  .cam-body .placeholder .spin {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- 检测结果 ---------- */
+  .cam-dets {
+    padding: 8px 12px;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    max-height: 140px;
+    overflow-y: auto;
+    background: #0f141a;
+  }
+  .cam-dets .empty { color: var(--muted); font-style: italic; }
+  .cam-dets .det-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    padding: 3px 0;
+    border-bottom: 1px dashed #21262d;
+  }
+  .cam-dets .det-row:last-child { border-bottom: none; }
+  .cam-dets .label   { color: var(--accent); }
+  .cam-dets .conf    { color: var(--warn); }
+  .cam-dets .center  { color: var(--muted); }
+  .cam-dets .rel     { color: #79c0ff; }
+
+  /* ---------- 底部调试面板 ---------- */
+  footer {
+    max-width: 1920px;
+    margin: 0 auto 20px;
+    padding: 0 12px;
+  }
+  .debug {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .debug summary {
+    cursor: pointer;
+    color: var(--muted);
+    user-select: none;
+    outline: none;
+    font-size: 12px;
+  }
+  .debug pre {
+    margin: 10px 0 0;
+    padding: 10px;
+    background: #0a0e13;
+    border-radius: 4px;
+    max-height: 260px;
+    overflow: auto;
+    color: #a5d6ff;
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  /* ---------- 滚动条 ---------- */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>
+    <span id="ws-dot" class="dot off" title="WebSocket 状态"></span>
+    GrandRdk 实时监控
+  </h1>
+  <div class="meta">
+    <span id="ws-state">WS 未连接</span>
+    <span id="clock">--:--:--</span>
+  </div>
+</header>
+
+<main>
+  <!-- ============ 前视 ============ -->
+  <section class="cam" id="cam-front">
+    <div class="cam-header">
+      <div class="cam-title">
+        前视 <span class="role">/cam1 · front</span>
+      </div>
+      <div class="cam-stats">
+        <span class="item">FPS <b id="front-fps">--</b></span>
+        <span class="item">采集 <b id="front-cap">--</b> ms</span>
+        <span class="item">检测 <b id="front-det">--</b> ms</span>
+      </div>
+    </div>
+    <div class="cam-body">
+      <img id="front-img" src="/cam1" alt="前视画面">
+      <div class="placeholder" id="front-ph">
+        <div class="spin"></div>
+        <div>等待画面…</div>
+      </div>
+    </div>
+    <div class="cam-dets" id="front-dets">
+      <span class="empty">无数据</span>
+    </div>
+  </section>
+
+  <!-- ============ 下视 ============ -->
+  <section class="cam" id="cam-bottom">
+    <div class="cam-header">
+      <div class="cam-title">
+        下视 <span class="role">/cam2 · bottom</span>
+      </div>
+      <div class="cam-stats">
+        <span class="item">FPS <b id="bottom-fps">--</b></span>
+        <span class="item">采集 <b id="bottom-cap">--</b> ms</span>
+        <span class="item">检测 <b id="bottom-det">--</b> ms</span>
+      </div>
+    </div>
+    <div class="cam-body">
+      <img id="bottom-img" src="/cam2" alt="下视画面">
+      <div class="placeholder" id="bottom-ph">
+        <div class="spin"></div>
+        <div>等待画面…</div>
+      </div>
+    </div>
+    <div class="cam-dets" id="bottom-dets">
+      <span class="empty">无数据</span>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <details class="debug" open>
+    <summary>调试信息（原始 JSON）</summary>
+    <pre id="debug-json">等待 WebSocket 数据…</pre>
+  </details>
+</footer>
+
+<script>
+(() => {
+  'use strict';
+
+  // ============================================================
+  // 元素引用
+  // ============================================================
+  const $ = id => document.getElementById(id);
+
+  const wsDot     = $('ws-dot');
+  const wsState   = $('ws-state');
+  const clock     = $('clock');
+
+  const els = {
+    front: {
+      img:  $('front-img'),
+      ph:   $('front-ph'),
+      fps:  $('front-fps'),
+      cap:  $('front-cap'),
+      det:  $('front-det'),
+      list: $('front-dets'),
+    },
+    bottom: {
+      img:  $('bottom-img'),
+      ph:   $('bottom-ph'),
+      fps:  $('bottom-fps'),
+      cap:  $('bottom-cap'),
+      det:  $('bottom-det'),
+      list: $('bottom-dets'),
+    },
+  };
+  const debugJson = $('debug-json');
+
+  // ============================================================
+  // 时钟
+  // ============================================================
+  const pad = n => String(n).padStart(2, '0');
+  setInterval(() => {
+    const d = new Date();
+    clock.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }, 1000);
+
+  // ============================================================
+  // 画面加载状态：img onload / onerror 控制占位符
+  // ============================================================
+  for (const key of ['front', 'bottom']) {
+    const { img, ph } = els[key];
+    img.addEventListener('load',  () => { ph.style.display = 'none'; });
+    img.addEventListener('error', () => {
+      ph.style.display = 'flex';
+      ph.querySelector('div:last-child').textContent = '画面未就绪，2s 后重试…';
+      // 重连：给 img 换 src 触发重新拉流
+      setTimeout(() => {
+        const base = img.src.split('?')[0];
+        img.src = `${base}?t=${Date.now()}`;
+      }, 2000);
+    });
+  }
+
+  // ============================================================
+  // 渲染工具
+  // ============================================================
+  const fmt = (v, digits = 1) => {
+    if (v === null || v === undefined || Number.isNaN(Number(v))) return '--';
+    return Number(v).toFixed(digits);
+  };
+
+  function renderStats(side, stats) {
+    const e = els[side];
+    if (!stats || typeof stats !== 'object') {
+      e.fps.textContent = '--';
+      e.cap.textContent = '--';
+      e.det.textContent = '--';
+      return;
+    }
+    e.fps.textContent = fmt(stats.fps, 1);
+    e.cap.textContent = fmt(stats.capture_ms, 1);
+    e.det.textContent = fmt(stats.detect_ms, 1);
+  }
+
+  function renderDets(side, det) {
+    const e = els[side];
+    const dets = (det && Array.isArray(det.dets)) ? det.dets : [];
+    if (dets.length === 0) {
+      e.list.innerHTML = '<span class="empty">无目标</span>';
+      return;
+    }
+    const rows = dets.map(d => {
+      const [cx, cy] = d.center || ['-', '-'];
+      const [x1, y1, x2, y2] = d.bbox || ['-', '-', '-', '-'];
+      const rel = (typeof cx === 'number' && typeof cy === 'number')
+        ? `相对 (${cx - 320}, ${cy - 240})` : '相对 (-, -)';
+      return `
+        <div class="det-row">
+          <span class="label">${escapeHtml(d.label)}</span>
+          <span class="conf">conf=${fmt(d.score, 2)}</span>
+          <span class="center">center=(${cx},${cy})</span>
+        </div>
+        <div class="det-row" style="border-bottom:1px solid #21262d;">
+          <span class="rel">${rel}</span>
+          <span class="center" style="grid-column:2 / 4;">bbox=(${x1},${y1},${x2},${y2})</span>
+        </div>
+      `;
+    }).join('');
+    e.list.innerHTML = rows;
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function renderDebug(data) {
+    try {
+      debugJson.textContent = JSON.stringify(data, null, 2);
+    } catch (e) {
+      debugJson.textContent = String(data);
+    }
+  }
+
+  // ============================================================
+  // WebSocket
+  // ============================================================
+  let ws = null;
+  let wsRetryTimer = null;
+  let wsBackoff = 1000;   // 初始重连 1s，指数退避到 16s
+
+  function setWsState(on) {
+    wsDot.className = on ? 'dot on' : 'dot off';
+    wsState.textContent = on ? 'WS 已连接' : 'WS 未连接';
+  }
+
+  function connectWS() {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const url = `${proto}://${location.host}/ws/status`;
+    try {
+      ws = new WebSocket(url);
+    } catch (e) {
+      console.error('WS 创建失败', e);
+      scheduleReconnect();
+      return;
+    }
+
+    ws.onopen = () => {
+      console.log('[ws] connected', url);
+      setWsState(true);
+      wsBackoff = 1000;
+    };
+
+    ws.onmessage = (ev) => {
+      let data;
+      try { data = JSON.parse(ev.data); }
+      catch (e) { console.warn('[ws] 解析失败', e, ev.data); return; }
+
+      renderStats('front',  data.front  && data.front.stats);
+      renderStats('bottom', data.bottom && data.bottom.stats);
+      renderDets ('front',  data.front  && data.front.det);
+      renderDets ('bottom', data.bottom && data.bottom.det);
+      renderDebug(data);
+    };
+
+    ws.onerror = (e) => {
+      console.warn('[ws] error', e);
+    };
+
+    ws.onclose = () => {
+      console.log('[ws] closed');
+      setWsState(false);
+      scheduleReconnect();
+    };
+  }
+
+  function scheduleReconnect() {
+    if (wsRetryTimer) return;
+    const delay = wsBackoff;
+    wsBackoff = Math.min(wsBackoff * 2, 16000);
+    console.log(`[ws] 将在 ${delay} ms 后重连`);
+    wsRetryTimer = setTimeout(() => {
+      wsRetryTimer = null;
+      connectWS();
+    }, delay);
+  }
+
+  // ============================================================
+  // 页面可见性：切走时暂停，切回时立即重连
+  // ============================================================
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        wsBackoff = 1000;
+        connectWS();
+      }
+      // 重新拉 MJPEG（有些浏览器切走后流会断）
+      for (const key of ['front', 'bottom']) {
+        const img = els[key].img;
+        const base = img.src.split('?')[0];
+        img.src = `${base}?t=${Date.now()}`;
+      }
+    }
+  });
+
+  // ============================================================
+  // 启动
+  // ============================================================
+  setWsState(false);
+  connectWS();
+
+  // 保底：即使 WS 不通，也周期性用 REST 拉一次
+  setInterval(async () => {
+    if (ws && ws.readyState === WebSocket.OPEN) return;
+    try {
+      const r = await fetch('/api/status', { cache: 'no-store' });
+      if (!r.ok) return;
+      const data = await r.json();
+      renderStats('front',  data.front  && data.front.stats);
+      renderStats('bottom', data.bottom && data.bottom.stats);
+      renderDets ('front',  data.front  && data.front.det);
+      renderDets ('bottom', data.bottom && data.bottom.det);
+      renderDebug(data);
+    } catch (e) {
+      // 静默
+    }
+  }, 2000);
+
+})();
+</script>
+</body>
+</html>

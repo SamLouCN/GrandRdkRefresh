@@ -37,6 +37,9 @@ SHM_DET_BOTTOM   = f'{SHM_DIR}/momo_det_bottom.json'
 SHM_TELEM        = f'{SHM_DIR}/momo_telemetry.json'
 SHM_FLOW_BOTTOM  = f'{SHM_DIR}/momo_flow_bottom.bin'
 
+SHM_STATS_FRONT  = f'{SHM_DIR}/momo_stats_front.json'
+SHM_STATS_BOTTOM = f'{SHM_DIR}/momo_stats_bottom.json'
+
 HDR_MAGIC = b'MFS1'
 HDR_FMT   = '<4sIIIQ'
 HDR_SIZE  = struct.calcsize(HDR_FMT)
@@ -52,6 +55,22 @@ WEB_PORT = 5000
 WEB_MJPEG_QUALITY = 80
 WEB_TELEM_HZ = 10
 
+# ======================
+# Web 后端
+# ======================
+ENABLE_WEB_NEW      = True
+ENABLE_WEB_LEGACY   = True
+
+LEGACY_TCP_FRONT_PORT  = 9000
+LEGACY_TCP_BOTTOM_PORT = 9001
+LEGACY_TCP_BIND        = '0.0.0.0'
+LEGACY_TCP_FPS         = 60
+LEGACY_TCP_JPEG_Q      = 80
+
+LEGACY_TELEM_PORT      = 8081
+LEGACY_TELEM_DST       = '192.168.127.100'
+LEGACY_TELEM_HZ        = 10.0
+LEGACY_PING_ENABLED    = True
 
 DEFAULT_CONFIG = {
 
