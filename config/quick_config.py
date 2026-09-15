@@ -27,3 +27,10 @@ SHOW            = False     # 桌面环境下显示
 ENABLE_TIMING   = True      # 命令行环境下的统计信息
 SIMPLE_TIMING   = True      # 命令行环境下的简化统计信息
 ENABLE_LOG      = False     # 帧结果写 logs/
+
+# 性能
+N_WORKERS          = 3     # 每进程 worker 数
+CAMERA_QUEUE_SIZE  = 12    # 采集队列长度
+
+FRONT_BPU_CORES    = [0, 1, 2, 3]
+BOTTOM_BPU_CORES   = [0, 1, 2, 3]
