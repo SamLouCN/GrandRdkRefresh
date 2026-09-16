@@ -6,24 +6,43 @@
 <title>GrandRdk 实时监控</title>
 <style>
   :root {
-    --bg:        #0d1117;
-    --panel:     #161b22;
-    --border:    #30363d;
-    --text:      #c9d1d9;
-    --muted:     #8b949e;
-    --accent:    #4ade80;
-    --warn:      #facc15;
-    --danger:    #f87171;
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --bg:         #ffffff;
+    --tile:       #d1d1d1;
+    --panel:      #c4c4c4;
+    --appbar:     #161616;
+    --deep:       #0d0d0d;
+
+    --blue:       #15024F;   /* Win8.1 登录界面深蓝 */
+    --purple:     #68217a;   /* VS 紫 */
+
+    --text:       #1a1a1a;
+    --muted:      #5f5f5f;
+    --line:       #a8a8a8;
+
+    --blue-text:  #4aa3d9;   /* 深色背景上的亮蓝 */
+    --blue-deep:  #15024F;   /* 浅色背景上的深蓝 */
+    --purple-text:#68217a;
+    --orange-text:#a04000;
+
+    --font-ui:    "Segoe UI", "Segoe UI Web (West European)", "Segoe UI Local",
+                  -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue",
+                  Arial, "Microsoft YaHei", sans-serif;
+    --font-light: "Segoe UI Light", "Segoe UI", "Segoe UI Web (West European)",
+                  "Microsoft YaHei Light", -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono:  Consolas, "Cascadia Mono", "Courier New", ui-monospace, monospace;
   }
+
+  html { color-scheme: light; }
   * { box-sizing: border-box; }
+
   html, body {
     margin: 0; padding: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-family: var(--font-ui);
     font-size: 14px;
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
   }
 
   /* ---------- 顶栏 ---------- */
@@ -31,43 +50,50 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 18px;
-    background: var(--panel);
-    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    background: var(--blue);
+    color: #fff;
     position: sticky; top: 0; z-index: 10;
   }
   header h1 {
-    font-size: 15px;
+    font-family: var(--font-light);
+    font-size: 28px;
     margin: 0;
-    font-weight: 600;
+    font-weight: 300;
+    letter-spacing: -0.01em;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 14px;
+    line-height: 1.1;
   }
   header .meta {
     font-size: 12px;
-    color: var(--muted);
-    font-family: var(--font-mono);
+    font-weight: 400;
+    letter-spacing: .14em;
+    text-transform: uppercase;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 28px;
+    color: rgba(255,255,255,.9);
   }
+
+  /* 状态方块 */
   .dot {
     display: inline-block;
-    width: 9px; height: 9px;
-    border-radius: 50%;
-    background: var(--muted);
+    width: 12px; height: 12px;
+    background: rgba(255,255,255,.4);
     transition: background .2s;
+    flex-shrink: 0;
   }
-  .dot.on  { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
-  .dot.off { background: var(--danger); }
+  .dot.on  { background: #b6e04a; }
+  .dot.off { background: #ff6b6b; }
 
   /* ---------- 主区 ---------- */
   main {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    padding: 12px;
+    gap: 10px;
+    padding: 10px;
     max-width: 1920px;
     margin: 0 auto;
   }
@@ -75,47 +101,61 @@
     main { grid-template-columns: 1fr; }
   }
 
-  /* ---------- 摄像头卡片 ---------- */
+  /* ---------- 摄像头磁贴 ---------- */
   .cam {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
+    background: var(--tile);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
   }
   .cam-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
-    background: #1c2128;
-    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    color: #fff;
   }
+  #cam-front  .cam-header { background: var(--blue); }
+  #cam-bottom .cam-header { background: var(--purple); }
+
   .cam-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent);
+    font-family: var(--font-light);
+    font-size: 22px;
+    font-weight: 300;
+    color: #fff;
     display: flex;
-    align-items: center;
-    gap: 8px;
+    align-items: baseline;
+    gap: 12px;
+    line-height: 1.1;
   }
   .cam-title .role {
-    color: var(--muted);
+    color: rgba(255,255,255,.7);
     font-weight: 400;
-    font-size: 12px;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    font-family: var(--font-ui);
   }
+
   .cam-stats {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--warn);
+    font-family: var(--font-ui);
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.78);
     display: flex;
-    gap: 12px;
+    gap: 20px;
   }
   .cam-stats .item b {
-    color: var(--text);
-    font-weight: 500;
+    color: #fff;
+    font-family: var(--font-light);
+    font-weight: 300;
+    font-size: 16px;
+    margin-left: 5px;
+    letter-spacing: 0;
+    vertical-align: -1px;
   }
+
   .cam-body {
     position: relative;
     background: #000;
@@ -138,87 +178,114 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: var(--muted);
-    font-size: 13px;
-    gap: 6px;
+    color: rgba(255,255,255,.6);
+    font-family: var(--font-light);
+    font-size: 16px;
+    font-weight: 300;
+    gap: 14px;
     pointer-events: none;
   }
   .cam-body .placeholder .spin {
-    width: 20px; height: 20px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
+    width: 26px; height: 26px;
+    border: 2px solid rgba(255,255,255,.22);
+    border-top-color: #fff;
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: spin .9s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ---------- 检测结果 ---------- */
   .cam-dets {
-    padding: 8px 12px;
-    border-top: 1px solid var(--border);
+    padding: 12px 20px;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
     font-family: var(--font-mono);
     font-size: 12px;
-    max-height: 140px;
+    max-height: 150px;
     overflow-y: auto;
-    background: #0f141a;
+    color: var(--text);
   }
-  .cam-dets .empty { color: var(--muted); font-style: italic; }
+  .cam-dets .empty {
+    color: var(--muted);
+    font-style: normal;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    letter-spacing: .05em;
+  }
   .cam-dets .det-row {
     display: grid;
     grid-template-columns: 1fr auto auto;
-    gap: 10px;
-    padding: 3px 0;
-    border-bottom: 1px dashed #21262d;
+    gap: 12px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--line);
   }
-  .cam-dets .det-row:last-child { border-bottom: none; }
-  .cam-dets .label   { color: var(--accent); }
-  .cam-dets .conf    { color: var(--warn); }
+  .cam-dets .det-row:last-child {
+    border-bottom: none;
+  }
+  .cam-dets .label   { color: var(--blue-deep); font-weight: 700; }
+  .cam-dets .conf    { color: var(--orange-text); }
   .cam-dets .center  { color: var(--muted); }
-  .cam-dets .rel     { color: #79c0ff; }
+  .cam-dets .rel     { color: var(--purple-text); }
 
   /* ---------- 底部调试面板 ---------- */
   footer {
     max-width: 1920px;
-    margin: 0 auto 20px;
-    padding: 0 12px;
+    margin: 0 auto;
+    padding: 0 10px 10px;
   }
   .debug {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-family: var(--font-mono);
-    font-size: 12px;
+    background: var(--appbar);
+    color: #fff;
+    padding: 14px 20px;
+    font-family: var(--font-ui);
+    font-size: 13px;
   }
   .debug summary {
     cursor: pointer;
-    color: var(--muted);
+    color: #fff;
     user-select: none;
     outline: none;
     font-size: 12px;
+    font-weight: 400;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    list-style: none;
+    font-family: var(--font-light);
   }
+  .debug summary::-webkit-details-marker { display: none; }
+  .debug summary::after {
+    content: "▾";
+    display: inline-block;
+    margin-left: 10px;
+    color: rgba(255,255,255,.6);
+    transition: transform .15s;
+    font-size: 14px;
+  }
+  .debug[open] summary::after { transform: rotate(180deg); }
+  .debug summary:hover { color: var(--blue-text); }
+
   .debug pre {
-    margin: 10px 0 0;
-    padding: 10px;
-    background: #0a0e13;
-    border-radius: 4px;
-    max-height: 260px;
+    margin: 14px 0 0;
+    padding: 16px;
+    background: var(--deep);
+    max-height: 280px;
     overflow: auto;
-    color: #a5d6ff;
-    font-size: 11px;
-    line-height: 1.5;
+    color: var(--blue-text);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-all;
   }
 
-  /* ---------- 滚动条 ---------- */
-  ::-webkit-scrollbar { width: 8px; height: 8px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb {
-    background: #30363d;
-    border-radius: 4px;
+  @media (max-width: 640px) {
+    header { padding: 14px 20px; }
+    header h1 { font-size: 20px; }
+    header .meta { gap: 14px; font-size: 10.5px; }
+    .cam-stats { gap: 12px; }
+    .cam-title { font-size: 18px; }
+    .cam-stats .item b { font-size: 14px; }
   }
-  ::-webkit-scrollbar-thumb:hover { background: #484f58; }
 </style>
 </head>
 <body>
@@ -389,7 +456,7 @@
           <span class="conf">conf=${fmt(d.score, 2)}</span>
           <span class="center">center=(${cx},${cy})</span>
         </div>
-        <div class="det-row" style="border-bottom:1px solid #21262d;">
+        <div class="det-row">
           <span class="rel">${rel}</span>
           <span class="center" style="grid-column:2 / 4;">bbox=(${x1},${y1},${x2},${y2})</span>
         </div>
